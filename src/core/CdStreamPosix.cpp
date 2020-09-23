@@ -12,7 +12,12 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/resource.h>
+#ifndef __SWITCH__
 #include <sys/syscall.h>
+#else
+// no signals in switch
+#define pthread_kill(threadid, signal) pthread_cancel(threadid)
+#endif
 
 #include "CdStream.h"
 #include "rwcore.h"
@@ -215,6 +220,7 @@ CdStreamShutdown(void)
 #ifndef ONE_THREAD_PER_CHANNEL
     gCdStreamThreadStatus = 2;
     sem_post(&gCdStreamSema);
+	pthread_join(_gCdStreamThread, NULL);
 #endif
 
 #ifdef ONE_THREAD_PER_CHANNEL
@@ -435,7 +441,7 @@ void *CdStreamThread(void *param)
 
 		pChannel->nSectorsToRead = 0;
 
-		if ( pChannel->bLocked )
+		if ( pChannel->bLocked && gCdStreamThreadStatus != 2)
 		{
 			sem_post(&pChannel->pDoneSemaphore);
 		}
@@ -453,7 +459,7 @@ void *CdStreamThread(void *param)
     sem_destroy(&gpReadInfo[channel].pDoneSemaphore);
 #endif
     free(gpReadInfo);
-	pthread_exit(nil);
+	return 0;
 }
 
 bool

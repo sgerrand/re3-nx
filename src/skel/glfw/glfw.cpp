@@ -71,7 +71,9 @@ DWORD _dwOperatingSystemVersion;
 #include "resource.h"
 #else
 long _dwOperatingSystemVersion;
+#ifndef __SWITCH__ // missing in switch devkit
 #include <sys/sysinfo.h>
+#endif
 #include <stddef.h>
 #include <locale.h>
 #include <signal.h>
@@ -435,6 +437,8 @@ psInitialize(void)
 #endif
 
 #endif
+
+#ifndef __SWITCH__
 	struct sysinfo systemInfo;
 	sysinfo(&systemInfo);
 	
@@ -443,6 +447,14 @@ psInitialize(void)
 
 	debug("Physical memory size %u\n", systemInfo.totalram);
 	debug("Available physical memory %u\n", systemInfo.freeram);
+#else
+	size_t total_mem_available, total_mem_usage;
+	svcGetInfo(&total_mem_available, 6, 0xffff8001, 0);
+	svcGetInfo(&total_mem_usage,     7, 0xffff8001, 0);
+
+	debug("Total available memory %u\n", total_mem_available);
+	debug("Total memory usage %u\n", total_mem_usage);
+#endif
 
 #endif
 	TheText.Unload();
@@ -701,9 +713,26 @@ psSelectDevice()
 		   FrontEndMenuManager.m_nPrefsHeight == 0 ||
 		   FrontEndMenuManager.m_nPrefsDepth == 0){
 			// Defaults if nothing specified
+			#ifndef __SWITCH__
 			const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 			FrontEndMenuManager.m_nPrefsWidth = mode->width;
 			FrontEndMenuManager.m_nPrefsHeight = mode->height;
+			#else
+			switch(appletGetOperationMode()){
+				default:
+				case AppletOperationMode_Handheld: {
+					FrontEndMenuManager.m_nPrefsWidth = 1280;
+					FrontEndMenuManager.m_nPrefsHeight = 720;
+					break;
+				}
+
+				case AppletOperationMode_Docked: {
+					FrontEndMenuManager.m_nPrefsWidth = 1920;
+					FrontEndMenuManager.m_nPrefsHeight = 1080;
+					break;
+				}
+			}
+			#endif
 			FrontEndMenuManager.m_nPrefsDepth = 32;
 			FrontEndMenuManager.m_nPrefsWindowed = 0;
 		}
@@ -854,7 +883,9 @@ void psPostRWinit(void)
 	RwVideoMode vm;
 	RwEngineGetVideoModeInfo(&vm, GcurSelVM);
 
+	#ifndef __SWITCH__
 	glfwSetKeyCallback(PSGLOBAL(window), keypressCB);
+	#endif
 	glfwSetWindowSizeCallback(PSGLOBAL(window), resizeCB);
 	glfwSetScrollCallback(PSGLOBAL(window), scrollCB);
 	glfwSetCursorPosCallback(PSGLOBAL(window), cursorCB);
@@ -1404,10 +1435,17 @@ int
 main(int argc, char *argv[])
 {
 #endif
+#ifdef __SWITCH__
+	#if DEBUG
+	socketInitializeDefault();
+	nxlinkStdio();
+	#endif
+	appletLockExit();
+#endif
 	RwV2d pos;
 	RwInt32 i;
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__SWITCH__)
 	struct sigaction act;
 	act.sa_sigaction = terminateHandler;
 	act.sa_flags = SA_SIGINFO;
@@ -1594,6 +1632,9 @@ main(int argc, char *argv[])
 		while( !RsGlobal.quit && !FrontEndMenuManager.m_bWantToRestart && !glfwWindowShouldClose(PSGLOBAL(window)))
 #endif
 		{
+			#ifdef __SWITCH__
+			if(!appletMainLoop()) RsGlobal.quit = true;
+			#endif
 			glfwPollEvents();
 			if( ForegroundApp )
 			{
@@ -1873,6 +1914,12 @@ main(int argc, char *argv[])
 	SetErrorMode(0);
 #endif
 
+	#ifdef __SWITCH__
+	#ifdef DEBUG
+	socketExit();
+	#endif
+	appletUnlockExit();
+	#endif
 	return 0;
 }
 

@@ -149,6 +149,21 @@ char* casepath(char const* path, bool checkPathFirst)
     size_t rl = 0;
 
     DIR* d;
+
+    char* c;
+    
+    #ifdef __SWITCH__
+    if( (c = strstr(p, ":/")) != NULL) // support for switch mounted device names
+    {
+        size_t deviceNameOffset = c - p + 3;
+        char* deviceNamePath = (char*)alloca(deviceNameOffset + 1);
+        strlcpy(deviceNamePath, p, deviceNameOffset);
+        deviceNamePath[deviceNameOffset] = 0;
+        d = opendir(deviceNamePath);
+        p = c + 1;
+    }
+    else
+    #endif
     if (p[0] == '/' || p[0] == '\\')
     {
         d = opendir("/");
@@ -163,7 +178,7 @@ char* casepath(char const* path, bool checkPathFirst)
 
     bool cantProceed = false; // just convert slashes in what's left in string, not case sensitivity
     bool mayBeTrailingSlash = false;
-    char* c;
+
     while (c = strsep(&p, "/\\"))
     {
         // May be trailing slash(allow), slash at the start(avoid), or multiple slashes(avoid)
