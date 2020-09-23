@@ -7,7 +7,10 @@ GTA 3 decompilation ported to the Nintendo Switch
 - Install switch port of [OpenAL-Soft](https://github.com/fgsfdsfgs/openal-soft)
 - Build the [librw switch port](https://github.com/AGraber/librw) and place static libraries in devkitPro/portlibs/switch/lib
 
-### Original README:
+## Downloads:
+Check [releases](https://github.com/AGraber/re3nx/releases)
+
+## Original README:
 
 # re3
 [![Build status](https://ci.appveyor.com/api/projects/status/hyiwgegks122h8jg/branch/master?svg=true)](https://ci.appveyor.com/project/aap/re3/branch/master)
