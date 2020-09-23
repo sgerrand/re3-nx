@@ -65,7 +65,7 @@ CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lrw -lglad -lglfw3 -lEGL -lglapi -ldrm_nouveau -lm -lmpg123 -lopenal -lpthread -lSDL2 -lnx
+LIBS	:= -lrw -lglad -lglfw3 -lEGL -lglapi -ldrm_nouveau -lmpg123 -lopenal -lpthread -lSDL2 -lnx
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
