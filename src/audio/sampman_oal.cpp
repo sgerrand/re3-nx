@@ -656,11 +656,8 @@ cSampleManager::Initialise(void)
 void
 cSampleManager::Terminate(void)
 {
-	release_existing();
-
 	for (int32 i = 0; i < MAX_STREAMS; i++)
 	{
-		debug("releasing Stream %d\n", i);
 		CStream *stream = aStream[i];
 		if (stream)
 		{
@@ -668,6 +665,8 @@ cSampleManager::Terminate(void)
 			aStream[i] = NULL;
 		}
 	}
+
+	release_existing();
 
 	CStream::Terminate();
 	
