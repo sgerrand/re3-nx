@@ -1444,7 +1444,7 @@ main(int argc, char *argv[])
 {
 #endif
 #ifdef __SWITCH__
-	#if DEBUG
+	#ifdef DEBUG
 	socketInitializeDefault();
 	nxlinkStdio();
 	#endif
