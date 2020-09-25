@@ -1211,7 +1211,15 @@ void resizeCB(GLFWwindow* window, int width, int height) {
 	* memory things don't work.
 	*/
 	/* redraw window */
-	if (RwInitialised && (gGameState == GS_PLAYING_GAME || gGameState == GS_ANIMVIEWER))
+	if (
+		RwInitialised &&
+		(
+			gGameState == GS_PLAYING_GAME
+			#ifndef MASTER
+			|| gGameState == GS_ANIMVIEWER
+			#endif
+		)
+	)
 	{
 		RsEventHandler((gGameState == GS_PLAYING_GAME ? rsIDLE : rsANIMVIEWER), (void*)TRUE);
 	}
@@ -1859,8 +1867,10 @@ main(int argc, char *argv[])
 		{
 			if ( gGameState == GS_PLAYING_GAME )
 				CGame::ShutDown();
+			#ifndef MASTER
 			else if ( gGameState == GS_ANIMVIEWER )
 				CAnimViewer::Shutdown();
+			#endif
 			
 			CTimer::Stop();
 			
@@ -1884,8 +1894,10 @@ main(int argc, char *argv[])
 
 	if ( gGameState == GS_PLAYING_GAME )
 		CGame::ShutDown();
+	#ifndef MASTER
 	else if ( gGameState == GS_ANIMVIEWER )
 		CAnimViewer::Shutdown();
+	#endif
 
 	DMAudio.Terminate();
 	
