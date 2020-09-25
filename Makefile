@@ -58,7 +58,7 @@ ARCH	:=	-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
 CFLAGS	:=	-g -O3 -ffunction-sections \
 			$(ARCH) $(DEFINES)
 
-CFLAGS	+=	$(INCLUDE) -DSWITCH -D__SWITCH__ -DLIBRW -DRW_GL3 -DAUDIO_OAL -DLIBRW_GLAD -pthread
+CFLAGS	+=	$(INCLUDE) -DSWITCH -D__SWITCH__ -DMASTER -DFINAL -DLIBRW -DRW_GL3 -DAUDIO_OAL -DLIBRW_GLAD -pthread
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 
