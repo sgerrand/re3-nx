@@ -111,7 +111,7 @@ typedef uint16_t wchar;
 inline uint32 dpb(uint32 b, uint32 p, uint32 s, uint32 w)
 {
 	uint32 m = MASK(p,s);
-	return w & ~m | b<<p & m;
+	return (w & ~m) | ((b<<p) & m);
 }
 inline uint32 ldb(uint32 p, uint32 s, uint32 w)
 {
@@ -149,8 +149,11 @@ inline uint32 ldb(uint32 p, uint32 s, uint32 w)
 
 #ifdef ASPECT_RATIO_SCALE
 #define SCREEN_SCALE_AR(a) ((a) * DEFAULT_ASPECT_RATIO / SCREEN_ASPECT_RATIO)
+extern float ScaleAndCenterX(float x);
+#define SCALE_AND_CENTER_X(x) ScaleAndCenterX(x)
 #else
 #define SCREEN_SCALE_AR(a) (a)
+#define SCALE_AND_CENTER_X(x) SCREEN_STRETCH_X(x)
 #endif
 
 #include "maths.h"
@@ -220,6 +223,8 @@ public:
 #if (defined(_MSC_VER))
 extern int strcasecmp(const char *str1, const char *str2);
 #endif
+
+extern wchar *AllocUnicode(const char*src);
 
 #define clamp(v, low, high) ((v)<(low) ? (low) : (v)>(high) ? (high) : (v))
 

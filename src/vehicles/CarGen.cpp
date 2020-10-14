@@ -22,13 +22,18 @@ uint32 CTheCarGenerators::CurrentActiveCount;
 
 void CCarGenerator::SwitchOff()
 {
-	m_nUsesRemaining = 0;
-	--CTheCarGenerators::CurrentActiveCount;
+#ifdef FIX_BUGS
+	if (m_nUsesRemaining != 0)
+#endif
+	{
+		m_nUsesRemaining = 0;
+		--CTheCarGenerators::CurrentActiveCount;
+	}
 }
 
 void CCarGenerator::SwitchOn()
 {
-	m_nUsesRemaining = 255;
+	m_nUsesRemaining = UINT16_MAX;
 	m_nTimer = CalcNextGen();
 	++CTheCarGenerators::CurrentActiveCount;
 }
@@ -74,11 +79,12 @@ void CCarGenerator::DoInternalProcessing()
 		}
 		m_nVehicleHandle = CPools::GetVehiclePool()->GetIndex(pBoat);
 	}else{
-		bool groundFound = false;
+		bool groundFound;
 		CVector pos = m_vecPos;
 		if (pos.z > -100.0f){
 			pos.z = CWorld::FindGroundZFor3DCoord(pos.x, pos.y, pos.z, &groundFound);
 		}else{
+			groundFound = false;
 			CColPoint cp;
 			CEntity* pEntity;
 			groundFound = CWorld::ProcessVerticalLine(CVector(pos.x, pos.y, 1000.0f), -1000.0f,
@@ -89,7 +95,12 @@ void CCarGenerator::DoInternalProcessing()
 		if (!groundFound) {
 			debug("CCarGenerator::DoInternalProcessing - can't find ground z for new car x = %f y = %f \n", m_vecPos.x, m_vecPos.y);
 		}else{
-			CAutomobile* pCar = new CAutomobile(m_nModelIndex, PARKED_VEHICLE);
+			CAutomobile* pCar;
+
+			// So game crashes if it's bike :D
+			if (((CVehicleModelInfo*)CModelInfo::GetModelInfo(m_nModelIndex))->m_vehicleType != VEHICLE_TYPE_BIKE)
+				pCar = new CAutomobile(m_nModelIndex, PARKED_VEHICLE);
+
 			pCar->bIsStatic = false;
 			pCar->bEngineOn = false;
 			pos.z += pCar->GetDistanceFromCentreOfMassToBaseOfModel();
@@ -111,10 +122,10 @@ void CCarGenerator::DoInternalProcessing()
 		}
 	}
 #ifdef FIX_BUGS
-	if (m_nUsesRemaining != 0)
+	if (m_nUsesRemaining < UINT16_MAX)
 		--m_nUsesRemaining;
 #else
-	if (m_nUsesRemaining < -1)
+	if (m_nUsesRemaining < ~0)
 		--m_nUsesRemaining;
 #endif
 	m_nTimer = CalcNextGen();

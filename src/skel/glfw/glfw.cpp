@@ -1,5 +1,15 @@
 #if defined RW_GL3 && !defined LIBRW_SDL2
 
+#ifdef _WIN32
+#include <windows.h>
+#include <mmsystem.h>
+#include <shellapi.h>
+#include <windowsx.h>
+#include <basetsd.h>
+#include <regstr.h>
+#include <shlobj.h>
+#endif
+
 #define WITHWINDOWS
 #include "common.h"
 
@@ -30,7 +40,6 @@
 #include "Sprite2d.h"
 #include "AnimViewer.h"
 #include "Font.h"
-
 
 #define MAX_SUBSYSTEMS		(16)
 
@@ -71,14 +80,22 @@ DWORD _dwOperatingSystemVersion;
 #include "resource.h"
 #else
 long _dwOperatingSystemVersion;
-#ifndef __SWITCH__ // missing in switch devkit
+#if !defined(__APPLE__) || !defined(__SWITCH__)
 #include <sys/sysinfo.h>
+#else
+#include <mach/mach_host.h>
+#include <sys/sysctl.h>
 #endif
 #include <stddef.h>
 #include <locale.h>
 #include <signal.h>
 #include <errno.h>
 #endif
+
+#ifdef DONT_TRUST_RECOGNIZED_JOYSTICKS
+char gSelectedJoystickName[128] = "";
+#endif
+
 /*
  *****************************************************************************
  */
@@ -412,6 +429,10 @@ psInitialize(void)
 			_dwOperatingSystemVersion = OS_WIN95;
 		}
 	}
+#else
+	_dwOperatingSystemVersion = OS_WINXP; // To fool other classes
+#endif
+
 	
 #ifndef PS2_MENU
 
@@ -421,6 +442,8 @@ psInitialize(void)
 
 #endif
 
+
+#ifdef _WIN32
 	MEMORYSTATUS memstats;
 	GlobalMemoryStatus(&memstats);
 
@@ -428,36 +451,35 @@ psInitialize(void)
 
 	debug("Physical memory size %u\n", memstats.dwTotalPhys);
 	debug("Available physical memory %u\n", memstats.dwAvailPhys);
-#else
-	
-#ifndef PS2_MENU
-
-#ifdef GTA3_1_1_PATCH
-	FrontEndMenuManager.LoadSettings();
-#endif
-
-#endif
-
-#ifndef __SWITCH__
-	struct sysinfo systemInfo;
-	sysinfo(&systemInfo);
-	
-	_dwMemAvailPhys = systemInfo.freeram;
-	_dwOperatingSystemVersion = OS_WINXP; // To fool other classes
-
-	debug("Physical memory size %u\n", systemInfo.totalram);
-	debug("Available physical memory %u\n", systemInfo.freeram);
-#else
+#elif defined (__APPLE__)
+	uint64_t size = 0;
+	uint64_t page_size = 0;
+	size_t uint64_len = sizeof(uint64_t);
+	size_t ull_len = sizeof(unsigned long long);
+	sysctl((int[]){CTL_HW, HW_PAGESIZE}, 2, &page_size, &ull_len, NULL, 0);
+	sysctl((int[]){CTL_HW, HW_MEMSIZE}, 2, &size, &uint64_len, NULL, 0);
+	vm_statistics_data_t vm_stat;
+	mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
+	host_statistics(mach_host_self(), HOST_VM_INFO, (host_info_t)&vm_stat, &count);
+	_dwMemAvailPhys = (uint64_t)(vm_stat.free_count * page_size);
+	debug("Physical memory size %llu\n", _dwMemAvailPhys);
+	debug("Available physical memory %llu\n", size);
+#elif defined (__SWITCH__)
 	size_t total_mem_available, total_mem_usage;
 	svcGetInfo(&total_mem_available, 6, 0xffff8001, 0);
 	svcGetInfo(&total_mem_usage,     7, 0xffff8001, 0);
 
 	debug("Total available memory %u\n", total_mem_available);
 	debug("Total memory usage %u\n", total_mem_usage);
+#else
+ 	struct sysinfo systemInfo;
+	sysinfo(&systemInfo);
+	_dwMemAvailPhys = systemInfo.freeram;
+	debug("Physical memory size %u\n", systemInfo.totalram);
+	debug("Available physical memory %u\n", systemInfo.freeram);
 #endif
-
-#endif
-	TheText.Unload();
+  
+  TheText.Unload();
 
 	return TRUE;
 }
@@ -841,19 +863,26 @@ void joysChangeCB(int jid, int event);
 
 bool IsThisJoystickBlacklisted(int i)
 {
-	const char *joyname = glfwGetJoystickName(i);
-
-	// this is just a keyboard and mouse
-	// Microsoft Microsoft® 2.4GHz Transceiver v8.0 Consumer Control
-	// Microsoft Microsoft® 2.4GHz Transceiver v8.0 System Control
-	if(strstr(joyname, "2.4GHz Transceiver"))
-		return true;
-
+#ifndef DONT_TRUST_RECOGNIZED_JOYSTICKS
 	return false;
+#else
+	if (glfwJoystickIsGamepad(i))
+		return false;
+
+	const char* joyname = glfwGetJoystickName(i);
+
+	if (strncmp(joyname, gSelectedJoystickName, strlen(gSelectedJoystickName)) == 0)
+		return false;
+
+	return true;
+#endif
 }
 
 void _InputInitialiseJoys()
 {
+	PSGLOBAL(joy1id) = -1;
+	PSGLOBAL(joy2id) = -1;
+
 	for (int i = 0; i <= GLFW_JOYSTICK_LAST; i++) {
 		if (glfwJoystickPresent(i) && !IsThisJoystickBlacklisted(i)) {
 			if (PSGLOBAL(joy1id) == -1)
@@ -868,6 +897,9 @@ void _InputInitialiseJoys()
 	if (PSGLOBAL(joy1id) != -1) {
 		int count;
 		glfwGetJoystickButtons(PSGLOBAL(joy1id), &count);
+#ifdef DONT_TRUST_RECOGNIZED_JOYSTICKS
+		strcpy(gSelectedJoystickName, glfwGetJoystickName(PSGLOBAL(joy1id)));
+#endif
 		ControlsManager.InitDefaultControlConfigJoyPad(count);
 	}
 }
@@ -1201,7 +1233,9 @@ void terminateHandler(int sig, siginfo_t *info, void *ucontext) {
 }
 
 void dummyHandler(int sig){
+	// Don't kill the app pls
 }
+
 #endif
 
 void resizeCB(GLFWwindow* window, int width, int height) {
@@ -1211,15 +1245,11 @@ void resizeCB(GLFWwindow* window, int width, int height) {
 	* memory things don't work.
 	*/
 	/* redraw window */
-	if (
-		RwInitialised &&
-		(
-			gGameState == GS_PLAYING_GAME
-			#ifndef MASTER
-			|| gGameState == GS_ANIMVIEWER
-			#endif
-		)
-	)
+	if (RwInitialised && (gGameState == GS_PLAYING_GAME
+#ifndef MASTER
+		|| gGameState == GS_ANIMVIEWER
+#endif
+	                      ))
 	{
 		RsEventHandler((gGameState == GS_PLAYING_GAME ? rsIDLE : rsANIMVIEWER), (void*)TRUE);
 	}
@@ -1459,9 +1489,10 @@ main(int argc, char *argv[])
 	act.sa_flags = SA_SIGINFO;
 	sigaction(SIGTERM, &act, NULL);
 	struct sigaction sa;
+	sigemptyset(&sa.sa_mask);
 	sa.sa_handler = dummyHandler;
 	sa.sa_flags = 0;
-	sigaction(SIGINT, &sa, NULL); // Needed for CdStreamPosix
+	sigaction(SIGUSR1, &sa, NULL); // Needed for CdStreamPosix
 #endif
 
 	/* 
@@ -1659,6 +1690,72 @@ main(int argc, char *argv[])
 						break;
 					}
 
+				    case GS_INIT_LOGO_MPEG:
+					{
+					    //if (!startupDeactivate)
+						//    PlayMovieInWindow(cmdShow, "movies\\Logo.mpg");
+					    gGameState = GS_LOGO_MPEG;
+					    TRACE("gGameState = GS_LOGO_MPEG;");
+					    break;
+				    }
+
+				    case GS_LOGO_MPEG:
+					{
+//					    CPad::UpdatePads();
+
+//					    if (startupDeactivate || ControlsManager.GetJoyButtonJustDown() != 0)
+						    ++gGameState;
+//					    else if (CPad::GetPad(0)->GetLeftMouseJustDown())
+//						    ++gGameState;
+//					    else if (CPad::GetPad(0)->GetEnterJustDown())
+//						    ++gGameState;
+//					    else if (CPad::GetPad(0)->GetCharJustDown(' '))
+//						    ++gGameState;
+//					    else if (CPad::GetPad(0)->GetAltJustDown())
+//						    ++gGameState;
+//					    else if (CPad::GetPad(0)->GetTabJustDown())
+//						    ++gGameState;
+
+					    break;
+				    }
+
+				    case GS_INIT_INTRO_MPEG:
+					{
+//#ifndef NO_MOVIES
+//					    CloseClip();
+//					    CoUninitialize();
+//#endif
+//
+//					    if (CMenuManager::OS_Language == LANG_FRENCH || CMenuManager::OS_Language == LANG_GERMAN)
+//						    PlayMovieInWindow(cmdShow, "movies\\GTAtitlesGER.mpg");
+//					    else
+//						    PlayMovieInWindow(cmdShow, "movies\\GTAtitles.mpg");
+
+					    gGameState = GS_INTRO_MPEG;
+					    TRACE("gGameState = GS_INTRO_MPEG;");
+					    break;
+				    }
+
+				    case GS_INTRO_MPEG:
+					{
+//					    CPad::UpdatePads();
+//
+//					    if (startupDeactivate || ControlsManager.GetJoyButtonJustDown() != 0)
+						    ++gGameState;
+//					    else if (CPad::GetPad(0)->GetLeftMouseJustDown())
+//						    ++gGameState;
+//					    else if (CPad::GetPad(0)->GetEnterJustDown())
+//						    ++gGameState;
+//					    else if (CPad::GetPad(0)->GetCharJustDown(' '))
+//						    ++gGameState;
+//					    else if (CPad::GetPad(0)->GetAltJustDown())
+//						    ++gGameState;
+//					    else if (CPad::GetPad(0)->GetTabJustDown())
+//						    ++gGameState;
+
+					    break;
+				    }
+
 					case GS_INIT_ONCE:
 					{
 						//CoUninitialize();
@@ -1674,7 +1771,6 @@ main(int argc, char *argv[])
 #else				
 						LoadingScreen(nil, nil, "loadsc0");
 #endif
-						
 						if ( !CGame::InitialiseOnceAfterRW() )
 							RsGlobal.quit = TRUE;
 						
@@ -1687,6 +1783,7 @@ main(int argc, char *argv[])
 						break;
 					}
 					
+#ifndef PS2_MENU
 					case GS_INIT_FRONTEND:
 					{
 						LoadingScreen(nil, nil, "loadsc0");
@@ -1707,7 +1804,6 @@ main(int argc, char *argv[])
 						break;
 					}
 					
-#ifndef PS2_MENU
 					case GS_FRONTEND:
 					{
 						if(!glfwGetWindowAttrib(PSGLOBAL(window), GLFW_ICONIFIED))
@@ -1867,10 +1963,10 @@ main(int argc, char *argv[])
 		{
 			if ( gGameState == GS_PLAYING_GAME )
 				CGame::ShutDown();
-			#ifndef MASTER
+#ifndef MASTER
 			else if ( gGameState == GS_ANIMVIEWER )
 				CAnimViewer::Shutdown();
-			#endif
+#endif
 			
 			CTimer::Stop();
 			
@@ -1894,10 +1990,10 @@ main(int argc, char *argv[])
 
 	if ( gGameState == GS_PLAYING_GAME )
 		CGame::ShutDown();
-	#ifndef MASTER
+#ifndef MASTER
 	else if ( gGameState == GS_ANIMVIEWER )
 		CAnimViewer::Shutdown();
-	#endif
+#endif
 
 	DMAudio.Terminate();
 	
@@ -1991,11 +2087,11 @@ void CapturePad(RwInt32 padID)
 	
 	// Gamepad axes are guaranteed to return 0.0f if that particular gamepad doesn't have that axis.
 	if ( glfwPad != -1 ) {
-		leftStickPos.x = ControlsManager.m_NewState.isGamepad ? gamepadState.axes[0] : numAxes >= 0 ? axes[0] : 0.0f;
-		leftStickPos.y = ControlsManager.m_NewState.isGamepad ? gamepadState.axes[1] : numAxes >= 1 ? axes[1] : 0.0f;
+		leftStickPos.x = ControlsManager.m_NewState.isGamepad ? gamepadState.axes[0] : numAxes >= 1 ? axes[0] : 0.0f;
+		leftStickPos.y = ControlsManager.m_NewState.isGamepad ? gamepadState.axes[1] : numAxes >= 2 ? axes[1] : 0.0f;
 
-		rightStickPos.x = ControlsManager.m_NewState.isGamepad ? gamepadState.axes[2] : numAxes >= 2 ? axes[2] : 0.0f;
-		rightStickPos.y = ControlsManager.m_NewState.isGamepad ? gamepadState.axes[3] : numAxes >= 3 ? axes[3] : 0.0f;
+		rightStickPos.x = ControlsManager.m_NewState.isGamepad ? gamepadState.axes[2] : numAxes >= 3 ? axes[2] : 0.0f;
+		rightStickPos.y = ControlsManager.m_NewState.isGamepad ? gamepadState.axes[3] : numAxes >= 4 ? axes[3] : 0.0f;
 	}
 	
 	{
@@ -2030,18 +2126,19 @@ void CapturePad(RwInt32 padID)
 
 void joysChangeCB(int jid, int event)
 {
-	if (event == GLFW_CONNECTED && !IsThisJoystickBlacklisted(jid))
-	{
-		if (PSGLOBAL(joy1id) == -1)
+	if (event == GLFW_CONNECTED && !IsThisJoystickBlacklisted(jid)) {
+		if (PSGLOBAL(joy1id) == -1) {
 			PSGLOBAL(joy1id) = jid;
-		else if (PSGLOBAL(joy2id) == -1)
+#ifdef DONT_TRUST_RECOGNIZED_JOYSTICKS
+			strcpy(gSelectedJoystickName, glfwGetJoystickName(jid));
+#endif
+		} else if (PSGLOBAL(joy2id) == -1)
 			PSGLOBAL(joy2id) = jid;
-	}
-	else if (event == GLFW_DISCONNECTED)
-	{
-		if (PSGLOBAL(joy1id) == jid)
+
+	} else if (event == GLFW_DISCONNECTED) {
+		if (PSGLOBAL(joy1id) == jid) {
 			PSGLOBAL(joy1id) = -1;
-		else if (PSGLOBAL(joy2id) == jid)
+		} else if (PSGLOBAL(joy2id) == jid)
 			PSGLOBAL(joy2id) = -1;
 	}
 }

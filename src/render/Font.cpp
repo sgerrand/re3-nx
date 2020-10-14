@@ -4,6 +4,32 @@
 #include "TxdStore.h"
 #include "Font.h"
 
+void
+AsciiToUnicode(const char *src, wchar *dst)
+{
+	while((*dst++ = (unsigned char)*src++) != '\0');
+}
+
+void
+UnicodeStrcat(wchar *dst, wchar *append)
+{
+	UnicodeStrcpy(&dst[UnicodeStrlen(dst)], append);
+}
+
+void
+UnicodeStrcpy(wchar *dst, const wchar *src)
+{
+	while((*dst++ = *src++) != '\0');
+}
+
+int
+UnicodeStrlen(const wchar *str)
+{
+	int len;
+	for(len = 0; *str != '\0'; len++, str++);
+	return len;
+}
+
 CFontDetails CFont::Details;
 int16 CFont::NewLine;
 CSprite2d CFont::Sprite[MAX_FONTS];
@@ -244,8 +270,8 @@ CFont::Initialise(void)
 	SetColor(CRGBA(0xFF, 0xFF, 0xFF, 0));
 	SetJustifyOff();
 	SetCentreOff();
-	SetWrapx(DEFAULT_SCREEN_WIDTH);
-	SetCentreSize(DEFAULT_SCREEN_WIDTH);
+	SetWrapx(SCREEN_STRETCH_X(DEFAULT_SCREEN_WIDTH));
+	SetCentreSize(SCREEN_STRETCH_X(DEFAULT_SCREEN_WIDTH));
 	SetBackgroundOff();
 	SetBackgroundColor(CRGBA(0x80, 0x80, 0x80, 0x80));
 	SetBackGroundOnlyTextOff();

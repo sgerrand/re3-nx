@@ -47,6 +47,8 @@ function getarch(a)
 		return 'amd64'
 	elseif a == 'ARM' then
 		return 'arm'
+	elseif a == 'ARM64' then
+		return 'arm64'
 	end
 	return a
 end
@@ -75,11 +77,18 @@ workspace "re3"
 			"linux-x86-librw_gl3_glfw-oal",
 			"linux-amd64-librw_gl3_glfw-oal",
 			"linux-arm-librw_gl3_glfw-oal",
+			"linux-arm64-librw_gl3_glfw-oal",
 		}
 
 	filter { "system:bsd" }
 		platforms {
 			"bsd-amd64-librw_gl3_glfw-oal"
+		}
+
+	filter { "system:macosx" }
+		platforms {
+			"macosx-arm64-librw_gl3_glfw-oal",
+			"macosx-amd64-librw_gl3_glfw-oal",
 		}
 
 	filter "configurations:Debug"
@@ -97,6 +106,9 @@ workspace "re3"
 		
 	filter { "platforms:bsd*" }
 		system "bsd"
+
+	filter { "platforms:macosx*" }
+		system "macosx"
 	
 	filter { "platforms:*x86*" }
 		architecture "x86"
@@ -106,6 +118,12 @@ workspace "re3"
 
 	filter { "platforms:*arm*" }
 		architecture "ARM"
+
+	filter { "platforms:macosx-arm64-*" }
+		buildoptions { "-target", "arm64-apple-macos11", "-std=gnu++14" }
+
+	filter { "platforms:macosx-amd64-*" }
+		buildoptions { "-target", "x86_64-apple-macos10.12", "-std=gnu++14" }
 
 	filter { "platforms:*librw_d3d9*" }
 		defines { "RW_D3D9" }
@@ -158,6 +176,13 @@ project "librw"
 	
 	filter "platforms:bsd*"
 		includedirs { "/usr/local/include" }
+		libdirs { "/usr/local/lib" }
+
+	filter "platforms:macosx*"
+		-- Support MacPorts and Homebrew
+		includedirs { "/opt/local/include" }
+		includedirs {"/usr/local/include" }
+		libdirs { "/opt/local/lib" }
 		libdirs { "/usr/local/lib" }
 	
 	filter "platforms:*RW33*"
@@ -273,6 +298,11 @@ project "re3"
 		
 	filter "platforms:bsd*oal"
 		links { "openal", "mpg123", "sndfile", "pthread" }
+
+	filter "platforms:macosx*oal"
+		links { "openal", "mpg123", "sndfile", "pthread" }
+		includedirs { "/usr/local/opt/openal-soft/include" }
+		libdirs { "/usr/local/opt/openal-soft/lib" }
 	
 	if _OPTIONS["with-opus"] then
 		filter {}
@@ -325,4 +355,12 @@ project "re3"
 	filter "platforms:bsd*gl3_glfw*"
 		links { "GL", "GLEW", "glfw", "sysinfo" }
 		includedirs { "/usr/local/include" }
+		libdirs { "/usr/local/lib" }
+
+	filter "platforms:macosx*gl3_glfw*"
+		links { "GLEW", "glfw" }
+		linkoptions { "-framework OpenGL" }
+		includedirs { "/opt/local/include" }
+		includedirs { "/usr/local/include" }
+		libdirs { "/opt/local/lib" }
 		libdirs { "/usr/local/lib" }

@@ -1509,7 +1509,7 @@ void CGarage::UpdateCrusherShake(float X, float Y)
 }
 
 // This is dumb but there is no way to avoid goto. What was there originally even?
-static bool DoINeedToRefreshPointer(CEntity * pDoor, bool bIsDummy, int8 nIndex)
+static bool DoINeedToRefreshPointer(CEntity * pDoor, bool bIsDummy, uint8 nIndex)
 {
 	bool bNeedToFindDoorEntities = false;
 	if (pDoor) {
@@ -1886,7 +1886,13 @@ CVehicle* CStoredCar::RestoreCar()
 #ifdef FIX_BUGS
 	if (pVehicle->IsCar())
 #endif
+	{
 		((CAutomobile*)pVehicle)->m_bombType = m_nCarBombType;
+#ifdef FIX_BUGS
+		if (m_nCarBombType != CARBOMB_NONE)
+			((CAutomobile*)pVehicle)->m_pBombRigger = FindPlayerPed();
+#endif
+	}
 	pVehicle->bHasBeenOwnedByPlayer = true;
 	pVehicle->m_nDoorLock = CARLOCK_UNLOCKED;
 	pVehicle->bBulletProof = m_bBulletproof;
