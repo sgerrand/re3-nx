@@ -2251,24 +2251,24 @@ CMenuManager::DrawFrontEnd()
 	if (m_nCurrScreen == MENUPAGE_NONE) {
 		if (m_bGameNotLoaded) {
 			if (bbTabCount != 6) {
-				bbNames[0] = { "FEB_SAV",MENUPAGE_NEW_GAME };
-				bbNames[1] = { "FEB_CON",MENUPAGE_CONTROLLER_PC };
-				bbNames[2] = { "FEB_AUD",MENUPAGE_SOUND_SETTINGS };
-				bbNames[3] = { "FEB_DIS",MENUPAGE_DISPLAY_SETTINGS };
-				bbNames[4] = { "FEB_LAN",MENUPAGE_LANGUAGE_SETTINGS };
-				bbNames[5] = { "FESZ_QU",MENUPAGE_EXIT };
+				bbNames[0] = BottomBarOption{ "FEB_SAV",MENUPAGE_NEW_GAME };
+				bbNames[1] = BottomBarOption{ "FEB_CON",MENUPAGE_CONTROLLER_PC };
+				bbNames[2] = BottomBarOption{ "FEB_AUD",MENUPAGE_SOUND_SETTINGS };
+				bbNames[3] = BottomBarOption{ "FEB_DIS",MENUPAGE_DISPLAY_SETTINGS };
+				bbNames[4] = BottomBarOption{ "FEB_LAN",MENUPAGE_LANGUAGE_SETTINGS };
+				bbNames[5] = BottomBarOption{ "FESZ_QU",MENUPAGE_EXIT };
 				bbTabCount = 6;
 			}
 		} else {
 			if (bbTabCount != 8) {
-				bbNames[0] = { "FEB_STA",MENUPAGE_STATS };
-				bbNames[1] = { "FEB_SAV",MENUPAGE_NEW_GAME };
-				bbNames[2] = { "FEB_BRI",MENUPAGE_BRIEFS };
-				bbNames[3] = { "FEB_CON",MENUPAGE_CONTROLLER_PC };
-				bbNames[4] = { "FEB_AUD",MENUPAGE_SOUND_SETTINGS };
-				bbNames[5] = { "FEB_DIS",MENUPAGE_DISPLAY_SETTINGS };
-				bbNames[6] = { "FEB_LAN",MENUPAGE_LANGUAGE_SETTINGS };
-				bbNames[7] = { "FESZ_QU",MENUPAGE_EXIT };
+				bbNames[0] = BottomBarOption{ "FEB_STA",MENUPAGE_STATS };
+				bbNames[1] = BottomBarOption{ "FEB_SAV",MENUPAGE_NEW_GAME };
+				bbNames[2] = BottomBarOption{ "FEB_BRI",MENUPAGE_BRIEFS };
+				bbNames[3] = BottomBarOption{ "FEB_CON",MENUPAGE_CONTROLLER_PC };
+				bbNames[4] = BottomBarOption{ "FEB_AUD",MENUPAGE_SOUND_SETTINGS };
+				bbNames[5] = BottomBarOption{ "FEB_DIS",MENUPAGE_DISPLAY_SETTINGS };
+				bbNames[6] = BottomBarOption{ "FEB_LAN",MENUPAGE_LANGUAGE_SETTINGS };
+				bbNames[7] = BottomBarOption{ "FESZ_QU",MENUPAGE_EXIT };
 				bbTabCount = 8;
 			}
 		}
@@ -2424,7 +2424,7 @@ CMenuManager::DrawFrontEndNormal()
 			if (!reverseAlpha)
 				fadeAlpha += (frameTime) * 20.f / 33.f;
 			else
-				fadeAlpha = max(0.0f, fadeAlpha - (frameTime) * 30.f / 33.f);
+				fadeAlpha = Max(0.0f, fadeAlpha - (frameTime) * 30.f / 33.f);
 
 			m_nMenuFadeAlpha = fadeAlpha;
 		} 

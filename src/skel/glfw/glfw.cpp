@@ -80,10 +80,12 @@ DWORD _dwOperatingSystemVersion;
 #include "resource.h"
 #else
 long _dwOperatingSystemVersion;
-#if !defined(__APPLE__) || !defined(__SWITCH__)
+#if !defined(__APPLE__) && !defined(__SWITCH__)
 #include <sys/sysinfo.h>
 #else
+#ifdef __APPLE
 #include <mach/mach_host.h>
+#endif
 #include <sys/sysctl.h>
 #endif
 #include <stddef.h>
@@ -764,6 +766,10 @@ psSelectDevice()
 		RwInt32 bestWidth = -1;
 		RwInt32 bestHeight = -1;
 		RwInt32 bestDepth = -1;
+
+		#ifdef __SWITCH__
+		bestFsMode = appletGetOperationMode() == AppletOperationMode_Handheld ? 0 : 1;
+		#else
 		for(GcurSelVM = 0; GcurSelVM < RwEngineGetNumVideoModes(); GcurSelVM++){
 			RwEngineGetVideoModeInfo(&vm, GcurSelVM);
 
@@ -781,6 +787,7 @@ psSelectDevice()
 				}
 			}
 		}
+		#endif
 
 		if(bestFsMode < 0){
 			printf("WARNING: Cannot find desired video mode, selecting device cancelled\n");
@@ -917,11 +924,11 @@ void psPostRWinit(void)
 
 	#ifndef __SWITCH__
 	glfwSetKeyCallback(PSGLOBAL(window), keypressCB);
-	#endif
 	glfwSetWindowSizeCallback(PSGLOBAL(window), resizeCB);
 	glfwSetScrollCallback(PSGLOBAL(window), scrollCB);
 	glfwSetCursorPosCallback(PSGLOBAL(window), cursorCB);
 	glfwSetCursorEnterCallback(PSGLOBAL(window), cursorEnterCB);
+	#endif
 	glfwSetJoystickCallback(joysChangeCB);
 
 	_InputInitialiseJoys();
@@ -1469,6 +1476,30 @@ WinMain(HINSTANCE instance,
 #endif
 
 #else
+
+static AppletHookCookie s_re3AppletHookCookie;
+static void _re3SwitchAppletHook(AppletHookType hook, void* param)
+{
+	if(hook == AppletHookType_OnOperationMode) {
+		RwRect rect;
+		switch(appletGetOperationMode()){
+			default:
+			case AppletOperationMode_Handheld: {
+				rect.w = 1280;
+				rect.h = 720;
+				break;
+			}
+
+			case AppletOperationMode_Docked: {
+				rect.w = 1920;
+				rect.h = 1080;
+				break;
+			}
+		}
+		RwEngineSetVideoMode(appletGetOperationMode() == AppletOperationMode_Handheld ? 0 : 1);
+		RsEventHandler(rsCAMERASIZE, &rect);
+	}
+}
 int
 main(int argc, char *argv[])
 {
@@ -1479,6 +1510,7 @@ main(int argc, char *argv[])
 	nxlinkStdio();
 	#endif
 	appletLockExit();
+	appletHook(&s_re3AppletHookCookie, _re3SwitchAppletHook, NULL);
 #endif
 	RwV2d pos;
 	RwInt32 i;
@@ -2026,6 +2058,7 @@ main(int argc, char *argv[])
 	#ifdef DEBUG
 	socketExit();
 	#endif
+	appletUnhook(&s_re3AppletHookCookie);
 	appletUnlockExit();
 	#endif
 	return 0;

@@ -17,6 +17,7 @@
 #else
 // no signals in switch
 #define pthread_kill(threadid, signal) pthread_cancel(threadid)
+#define USE_UNNAMED_SEM
 #endif
 
 #include "CdStream.h"
@@ -81,7 +82,14 @@ CdStreamInitThread(void)
 	gChannelRequestQ.tail = 0;
 	gChannelRequestQ.size = gNumChannels + 1;
 	ASSERT(gChannelRequestQ.items != nil );
+#ifdef USE_UNNAMED_SEM
+	gCdStreamSema = (sem_t*)malloc(sizeof(sem_t));
+	if(sem_init(gCdStreamSema, 0, 1) == -1) {
+		gCdStreamSema = SEM_FAILED;
+	}
+#else
 	gCdStreamSema = sem_open("/semaphore_cd_stream", O_CREAT, 0644, 1);
+#endif
 
 
 	if (gCdStreamSema == SEM_FAILED) {
@@ -95,8 +103,15 @@ CdStreamInitThread(void)
 	{
 		for ( int32 i = 0; i < gNumChannels; i++ )
 		{
+#ifdef USE_UNNAMED_SEM
+			gpReadInfo[i].pDoneSemaphore = (sem_t*)malloc(sizeof(sem_t));
+			if(sem_init(gpReadInfo[i].pDoneSemaphore, 0, 1) == -1) {
+				gpReadInfo[i].pDoneSemaphore = SEM_FAILED;
+			}
+#else
 			sprintf(semName,"/semaphore_done%d",i);
 			gpReadInfo[i].pDoneSemaphore = sem_open(semName, O_CREAT, 0644, 1);
+#endif
 
 			if (gpReadInfo[i].pDoneSemaphore == SEM_FAILED)
 			{
@@ -105,8 +120,15 @@ CdStreamInitThread(void)
 				return;
 			}
 #ifdef ONE_THREAD_PER_CHANNEL
+#ifdef USE_UNNAMED_SEM
+			gpReadInfo[i].pStartSemaphore = (sem_t*)malloc(sizeof(sem_t));
+			if(sem_init(gpReadInfo[i].pStartSemaphore, 0, 1) == -1) {
+				gpReadInfo[i].pStartSemaphore = SEM_FAILED;
+			}
+#else
 			sprintf(semName,"/semaphore_start%d",i);
 			gpReadInfo[i].pStartSemaphore = sem_open(semName, O_CREAT, 0644, 1);
+#endif
 
 			if (gpReadInfo[i].pStartSemaphore == SEM_FAILED)
 			{
@@ -221,6 +243,7 @@ CdStreamShutdown(void)
 #ifndef ONE_THREAD_PER_CHANNEL
 	gCdStreamThreadStatus = 2;
 	sem_post(gCdStreamSema);
+	pthread_join(_gCdStreamThread, nil);
 #else
 	for ( int32 i = 0; i < gNumChannels; i++ ) {
 		gpReadInfo[i].nThreadStatus = 2;
@@ -458,21 +481,41 @@ void *CdStreamThread(void *param)
 #ifndef ONE_THREAD_PER_CHANNEL
 	for ( int32 i = 0; i < gNumChannels; i++ )
 	{
+#ifdef USE_UNNAMED_SEM
+		sem_destroy(gpReadInfo[i].pDoneSemaphore);
+		free(gpReadInfo[i].pDoneSemaphore);
+#else
 		sem_close(gpReadInfo[i].pDoneSemaphore);
 		sprintf(semName,"/semaphore_done%d",i);
 		sem_unlink(semName);
+#endif
 	}
+#ifdef USE_UNNAMED_SEM
+	sem_destroy(gCdStreamSema);
+	free(gCdStreamSema);
+#else
 	sem_close(gCdStreamSema);
 	sem_unlink("/semaphore_cd_stream");
+#endif
 	free(gChannelRequestQ.items);
+#else
+#ifdef USE_UNNAMED_SEM
+	sem_destroy(gpReadInfo[channel].pStartSemaphore);
+	free(gpReadInfo[channel].pStartSemaphore);
 #else
 	sem_close(gpReadInfo[channel].pStartSemaphore);
 	sprintf(semName,"/semaphore_start%d",channel);
 	sem_unlink(semName);
+#endif
 
+#ifdef USE_UNNAMED_SEM
+	sem_destroy(gpReadInfo[channel].pDoneSemaphore);
+	free(gpReadInfo[channel].pDoneSemaphore);
+#else
 	sem_close(gpReadInfo[channel].pDoneSemaphore);
 	sprintf(semName,"/semaphore_done%d",channel);
 	sem_unlink(semName);
+#endif
 #endif
 	if (gpReadInfo)
 		free(gpReadInfo);

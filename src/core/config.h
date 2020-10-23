@@ -249,13 +249,15 @@ enum Config {
 #else
 #	define MENU_MAP			// VC-like menu map. Make sure you have new menu.txd
 #	define SCROLLABLE_STATS_PAGE	// only draggable by mouse atm
-#	define TRIANGLE_BACK_BUTTON
-//#	define CIRCLE_BACK_BUTTON
-//#	define PS2_LIKE_MENU	// An effort to recreate PS2 menu, cycling through tabs, different bg etc.
-//#	define PS2_SAVE_DIALOG		// PS2 style save dialog with transparent black box
+//#	define TRIANGLE_BACK_BUTTON
+#	define CIRCLE_BACK_BUTTON
+#	define PS2_LIKE_MENU	// An effort to recreate PS2 menu, cycling through tabs, different bg etc.
+#	define PS2_SAVE_DIALOG		// PS2 style save dialog with transparent black box
 #	define CUSTOM_FRONTEND_OPTIONS
 #	define GRAPHICS_MENU_OPTIONS // otherwise Advanced Options menu will appear if Display is full
 #endif
+
+#define HIDE_SCREENRES_SETTING
 
 // Script
 #define USE_DEBUG_SCRIPT_LOADER	// Loads main.scm by default. Hold R for main_freeroam.scm and D for main_d.scm
