@@ -545,6 +545,8 @@ _ResolveLink(char const *path, char *out)
 	}
 	
 	return false;
+#elif defined(__SWITCH__)
+	return false;
 #else
 	struct stat sb;
 
