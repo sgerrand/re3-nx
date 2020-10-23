@@ -2002,9 +2002,11 @@ void CTheScripts::Process()
 	case 4:
 		AllowMissionReplay = 5;
 		RetryMission(0, 0);
+		break;
 	case 6:
 		AllowMissionReplay = 7;
 		TimeToWaitTill = CTimer::GetTimeInMilliseconds() + 500;
+		break;
 	case 7:
 		if (TimeToWaitTill < CTimer::GetTimeInMilliseconds()) {
 			AllowMissionReplay = 0;
@@ -3575,7 +3577,7 @@ int8 CRunningScript::ProcessCommands100To199(int32 command)
 		if (pos.z <= MAP_Z_LOW_LIMIT)
 			pos.z = CWorld::FindGroundZForCoord(pos.x, pos.y);
 		pos.z += car->GetDistanceFromCentreOfMassToBaseOfModel();
-		car->bIsStatic = false;
+		car->SetIsStatic(false);
 		/* Again weird usage of virtual functions. */
 		if (car->IsBoat()) {
 			car->Teleport(pos);
@@ -8331,11 +8333,11 @@ int8 CRunningScript::ProcessCommands800To899(int32 command)
 	}
 	case COMMAND_INDUSTRIAL_PASSED:
 		CStats::IndustrialPassed = true;
-		DMAudio.PlayRadioAnnouncement(13); //TODO: enum?
+		DMAudio.PlayRadioAnnouncement(STREAMED_SOUND_ANNOUNCE_COMMERCIAL_OPEN);
 		return 0;
 	case COMMAND_COMMERCIAL_PASSED:
 		CStats::CommercialPassed = true;
-		DMAudio.PlayRadioAnnouncement(14); //TODO: enum?
+		DMAudio.PlayRadioAnnouncement(STREAMED_SOUND_ANNOUNCE_SUBURBAN_OPEN);
 		return 0;
 	case COMMAND_SUBURBAN_PASSED:
 		CStats::SuburbanPassed = true;
@@ -9183,13 +9185,13 @@ int8 CRunningScript::ProcessCommands900To999(int32 command)
 		script_assert(pObject);
 		if (ScriptParams[1]) {
 			if (pObject->bIsStatic) {
-				pObject->bIsStatic = false;
+				pObject->SetIsStatic(false);
 				pObject->AddToMovingList();
 			}
 		}
 		else {
 			if (!pObject->bIsStatic) {
-				pObject->bIsStatic = true;
+				pObject->SetIsStatic(true);
 				pObject->RemoveFromMovingList();
 			}
 		}

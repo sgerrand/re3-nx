@@ -1,4 +1,4 @@
-#include "common.h"
+﻿#include "common.h"
 
 #include "AudioManager.h"
 #include "audio_enums.h"
@@ -813,7 +813,7 @@ cAudioManager::ProcessVehicleRoadNoise(cVehicleParams *params)
 
 	int32 emittingVol;
 	uint32 freq;
-	float modificator;
+	float multiplier;
 	int sampleFreq;
 	float velocity;
 
@@ -836,9 +836,9 @@ cAudioManager::ProcessVehicleRoadNoise(cVehicleParams *params)
 						freq = 6050 * emittingVol / 30 + 16000;
 					} else {
 						m_sQueueSample.m_nSampleIndex = SFX_ROAD_NOISE;
-						modificator = m_sQueueSample.m_fDistance / 190.f;
+						multiplier = (m_sQueueSample.m_fDistance / SOUND_INTENSITY) * 0.5f;
 						sampleFreq = SampleManager.GetSampleBaseFrequency(SFX_ROAD_NOISE);
-						freq = (sampleFreq * modificator) + ((3 * sampleFreq) / 4);
+						freq = (sampleFreq * multiplier) + ((3 * sampleFreq) / 4);
 					}
 					m_sQueueSample.m_nFrequency = freq;
 					m_sQueueSample.m_nLoopCount = 0;
@@ -866,7 +866,7 @@ cAudioManager::ProcessWetRoadNoise(cVehicleParams *params)
 
 	float relativeVelocity;
 	int32 emittingVol;
-	float modificator;
+	float multiplier;
 	int freq;
 	float velChange;
 
@@ -886,9 +886,13 @@ cAudioManager::ProcessWetRoadNoise(cVehicleParams *params)
 					m_sQueueSample.m_nBankIndex = SFX_BANK_0;
 					m_sQueueSample.m_bIs2D = false;
 					m_sQueueSample.m_nReleasingVolumeModificator = 3;
-					modificator = m_sQueueSample.m_fDistance / 6.f;
+#ifdef FIX_BUGS
+					multiplier = (m_sQueueSample.m_fDistance / SOUND_INTENSITY) * 0.5f;
+#else
+					multiplier = (m_sQueueSample.m_fDistance / 3.0f) * 0.5f;
+#endif
 					freq = SampleManager.GetSampleBaseFrequency(SFX_ROAD_NOISE);
-					m_sQueueSample.m_nFrequency = freq + freq * modificator;
+					m_sQueueSample.m_nFrequency = freq + freq * multiplier;
 					m_sQueueSample.m_nLoopCount = 0;
 					m_sQueueSample.m_nEmittingVolume = emittingVol;
 					m_sQueueSample.m_nLoopStart = SampleManager.GetSampleLoopStartOffset(m_sQueueSample.m_nSampleIndex);
@@ -4103,14 +4107,13 @@ cAudioManager::GetArmyTalkSfx(int16 sound)
 	PedState pedState;
 	static uint32 lastSfx = NO_SAMPLE;
 
-	switch (sound) {
+	switch(sound) {
 	case SOUND_PED_PURSUIT_ARMY:
 		pedState = FindPlayerPed()->m_nPedState;
-		if (pedState == PED_ARRESTED || pedState == PED_DEAD || pedState == PED_DIE)
-			return NO_SAMPLE;
+		if(pedState == PED_ARRESTED || pedState == PED_DEAD || pedState == PED_DIE) return NO_SAMPLE;
 		GetPhrase(&sfx, &lastSfx, SFX_ARMY_VOICE_1_CHASE_1, 15);
-	default:
-		return GetGenericMaleTalkSfx(sound);
+		break;
+	default: return GetGenericMaleTalkSfx(sound);
 	}
 
 	return (SFX_ARMY_VOICE_2_CHASE_1 - SFX_ARMY_VOICE_1_CHASE_1) * (m_sQueueSample.m_nEntityIndex % 2) + sfx;
@@ -4598,32 +4601,16 @@ cAudioManager::GetBlackProjectMaleTalkSfx(int16 sound, int32 model)
 	uint32 sfx;
 	static uint32 lastSfx = NO_SAMPLE;
 
-	switch (sound) {
-	case SOUND_PED_HANDS_UP:
-		GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_GUN_COOL_1, 3);
-		break;
-	case SOUND_PED_CAR_JACKED:
-		GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_CARJACKED_1, 2);
-		break;
-	case SOUND_PED_ROBBED:
-		GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_MUGGED_1, 2);
-		break;
-	case SOUND_PED_ATTACK:
-		GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_FIGHT_1, 6);
-		break;
-	case SOUND_PED_EVADE:
-		GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_DODGE_1, 5);
-		break;
-	case SOUND_PED_ANNOYED_DRIVER:
-		GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_DRIVER_ABUSE_1, 7);
-		break;
-	case SOUND_PED_CHAT_SEXY:
-		GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_EYING_1, 3);
-		break;
-	case SOUND_PED_CHAT:
-		GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_CHAT_1, 6);
-	default:
-		return GetGenericMaleTalkSfx(sound);
+	switch(sound) {
+	case SOUND_PED_HANDS_UP: GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_GUN_COOL_1, 3); break;
+	case SOUND_PED_CAR_JACKED: GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_CARJACKED_1, 2); break;
+	case SOUND_PED_ROBBED: GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_MUGGED_1, 2); break;
+	case SOUND_PED_ATTACK: GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_FIGHT_1, 6); break;
+	case SOUND_PED_EVADE: GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_DODGE_1, 5); break;
+	case SOUND_PED_ANNOYED_DRIVER: GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_DRIVER_ABUSE_1, 7); break;
+	case SOUND_PED_CHAT_SEXY: GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_EYING_1, 3); break;
+	case SOUND_PED_CHAT: GetPhrase(&sfx, &lastSfx, SFX_BLACK_PROJECT_MALE_VOICE_1_CHAT_1, 6); break;
+	default: return GetGenericMaleTalkSfx(sound);
 	}
 
 	if (model == MI_P_MAN2)
@@ -4637,26 +4624,14 @@ cAudioManager::GetWhiteFatMaleTalkSfx(int16 sound)
 	uint32 sfx;
 	static uint32 lastSfx = NO_SAMPLE;
 
-	switch (sound) {
-	case SOUND_PED_CAR_JACKED:
-		GetPhrase(&sfx, &lastSfx, SFX_WHITE_FAT_MALE_VOICE_1_CARJACKED_1, 3);
-		break;
-	case SOUND_PED_ROBBED:
-		GetPhrase(&sfx, &lastSfx, SFX_WHITE_FAT_MALE_VOICE_1_MUGGED_1, 3);
-		break;
-	case SOUND_PED_EVADE:
-		GetPhrase(&sfx, &lastSfx, SFX_WHITE_FAT_MALE_VOICE_1_DODGE_1, 9);
-		break;
-	case SOUND_PED_ANNOYED_DRIVER:
-		GetPhrase(&sfx, &lastSfx, SFX_WHITE_FAT_MALE_VOICE_1_DRIVER_ABUSE_1, 9);
-		break;
-	case SOUND_PED_WAIT_DOUBLEBACK:
-		GetPhrase(&sfx, &lastSfx, SFX_WHITE_FAT_MALE_VOICE_1_LOST_1, 2);
-		break;
-	case SOUND_PED_CHAT:
-		GetPhrase(&sfx, &lastSfx, SFX_WHITE_FAT_MALE_VOICE_1_CHAT_1, 9);
-	default:
-		return GetGenericMaleTalkSfx(sound);
+	switch(sound) {
+	case SOUND_PED_CAR_JACKED: GetPhrase(&sfx, &lastSfx, SFX_WHITE_FAT_MALE_VOICE_1_CARJACKED_1, 3); break;
+	case SOUND_PED_ROBBED: GetPhrase(&sfx, &lastSfx, SFX_WHITE_FAT_MALE_VOICE_1_MUGGED_1, 3); break;
+	case SOUND_PED_EVADE: GetPhrase(&sfx, &lastSfx, SFX_WHITE_FAT_MALE_VOICE_1_DODGE_1, 9); break;
+	case SOUND_PED_ANNOYED_DRIVER: GetPhrase(&sfx, &lastSfx, SFX_WHITE_FAT_MALE_VOICE_1_DRIVER_ABUSE_1, 9); break;
+	case SOUND_PED_WAIT_DOUBLEBACK: GetPhrase(&sfx, &lastSfx, SFX_WHITE_FAT_MALE_VOICE_1_LOST_1, 2); break;
+	case SOUND_PED_CHAT: GetPhrase(&sfx, &lastSfx, SFX_WHITE_FAT_MALE_VOICE_1_CHAT_1, 9); break;
+	default: return GetGenericMaleTalkSfx(sound);
 	}
 	return sfx;
 }
@@ -6488,17 +6463,25 @@ cAudioManager::ProcessFires(int32)
 void
 cAudioManager::ProcessWaterCannon(int32)
 {
-	const float SOUND_INTENSITY = 900.0f;
+	const float SOUND_INTENSITY = 30.0f;
 
 	for (int32 i = 0; i < NUM_WATERCANNONS; i++) {
 		if (CWaterCannons::aCannons[i].m_nId) {
 			m_sQueueSample.m_vecPos = CWaterCannons::aCannons[0].m_avecPos[CWaterCannons::aCannons[i].m_nCur];
 			float distSquared = GetDistanceSquared(m_sQueueSample.m_vecPos);
-			if (distSquared < SOUND_INTENSITY) {
+			if (distSquared < SQR(SOUND_INTENSITY)) {
 				m_sQueueSample.m_fDistance = Sqrt(distSquared);
+#ifdef FIX_BUGS
+				m_sQueueSample.m_nVolume = ComputeVolume(50, SOUND_INTENSITY, m_sQueueSample.m_fDistance);
+#else
 				m_sQueueSample.m_nVolume = ComputeVolume(50, m_sQueueSample.m_fSoundIntensity, m_sQueueSample.m_fDistance);
+#endif
 				if (m_sQueueSample.m_nVolume != 0) {
+#ifdef FIX_BUGS
 					m_sQueueSample.m_fSoundIntensity = SOUND_INTENSITY;
+#else
+					m_sQueueSample.m_fSoundIntensity = SQR(SOUND_INTENSITY);
+#endif
 					m_sQueueSample.m_nSampleIndex = SFX_JUMBO_TAXI;
 					m_sQueueSample.m_nBankIndex = SFX_BANK_0;
 					m_sQueueSample.m_nFrequency = 15591;
