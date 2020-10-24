@@ -11,7 +11,6 @@
 #pragma comment( lib, "libsndfile-1.lib" )
 #pragma comment( lib, "libmpg123-0.lib" )
 #else
-#include "crossplatform.h"
 #endif
 #ifndef __SWITCH__
 #include <sndfile.h>
@@ -20,6 +19,14 @@
 #include "dr_wav.h"
 #endif
 #include <mpg123.h>
+#endif
+#include "crossplatform.h"
+
+#if defined(AUDIO_OPUS) && defined(__SWITCH__)
+static size_t opuspkt_tmpbuf_size = sizeof(HwopusHeader) + 4096*48;
+static uint8* opuspkt_tmpbuf = nil;
+
+int hw_decode(void *_ctx, OpusMSDecoder *_decoder, void *_pcm, const ogg_packet *_op, int _nsamples, int _nchannels, int _format, int _li);
 #endif
 
 #ifndef AUDIO_OPUS
@@ -281,6 +288,10 @@ class COpusFile : public IDecoder
 	bool m_bOpened;
 	uint32 m_nRate;
 	uint32 m_nChannels;
+
+#ifdef __SWITCH__
+	HwopusDecoder m_HwDecoder = {0};
+#endif
 public:
 	COpusFile(const char *path) : m_FileH(nil),
 		m_bOpened(false),
@@ -292,7 +303,7 @@ public:
 
 		if (m_FileH) {
 			m_nChannels = op_head(m_FileH, 0)->channel_count;
-			m_nRate = op_head(m_FileH, 0)->input_sample_rate;
+			m_nRate = 48000;
 			const OpusTags *tags = op_tags(m_FileH, 0);
 			for (int i = 0; i < tags->comments; i++) {
 				if (strncmp(tags->user_comments[i], "SAMPLERATE", sizeof("SAMPLERATE")-1) == 0)
@@ -301,6 +312,15 @@ public:
 					break;
 				}
 			}
+
+#ifdef __SWITCH__
+			int res = hwopusDecoderInitialize(&m_HwDecoder, m_nRate, 2);//This assumes that the opus file is <samplerate> with <num_channels>.
+			if (R_FAILED(res)) {
+				printf("hwopusDecoderInitialize: %08" PRIx32 "\n", res);
+				assert("hwopusDecoderInitialize failed" && 0);
+			}
+			op_set_decode_callback(m_FileH, hw_decode, &m_HwDecoder);
+#endif
 			
 			m_bOpened = true;
 		}
@@ -312,6 +332,9 @@ public:
 		{
 			op_free(m_FileH);
 			m_FileH = nil;
+#ifdef __SWITCH__
+			hwopusDecoderExit(&m_HwDecoder);
+#endif
 		}
 	}
 	
@@ -367,10 +390,59 @@ public:
 };
 #endif
 
+
+
+#if defined(AUDIO_OPUS) && defined(__SWITCH__)
+void InitializeSwitchOpusHwDecoder()
+{
+	opuspkt_tmpbuf = (uint8*)malloc(opuspkt_tmpbuf_size);
+	ASSERT(opuspkt_tmpbuf!=nil);
+
+	memset(opuspkt_tmpbuf, 0, opuspkt_tmpbuf_size);
+}
+
+void TerminateSwitchOpusHwDecoder()
+{
+	free(opuspkt_tmpbuf);
+}
+
+int hw_decode(void *_ctx, OpusMSDecoder *_decoder, void *_pcm, const ogg_packet *_op, int _nsamples, int _nchannels, int _format, int _li) {
+    HwopusDecoder *decoder = (HwopusDecoder*)_ctx;
+    HwopusHeader *hdr = NULL;
+    size_t pktsize, pktsize_extra;
+
+    Result rc = 0;
+    s32 DecodedDataSize = 0;
+    s32 DecodedSampleCount = 0;
+
+    if (_format != OP_DEC_FORMAT_SHORT) return OPUS_BAD_ARG;
+
+    pktsize = _op->bytes;//Opus packet size.
+    pktsize_extra = pktsize+8;//Packet size with HwopusHeader.
+
+    if (pktsize_extra > opuspkt_tmpbuf_size) return OPUS_INTERNAL_ERROR;
+
+    hdr = (HwopusHeader*)opuspkt_tmpbuf;
+    memset(opuspkt_tmpbuf, 0, pktsize_extra);
+
+    hdr->size = __builtin_bswap32(pktsize);
+    memcpy(&opuspkt_tmpbuf[sizeof(HwopusHeader)], _op->packet, pktsize);
+
+    rc = hwopusDecodeInterleaved(decoder, &DecodedDataSize, &DecodedSampleCount, opuspkt_tmpbuf, pktsize_extra, (s16*)_pcm, _nsamples * _nchannels * sizeof(opus_int16));
+
+    if (R_FAILED(rc)) return OPUS_INTERNAL_ERROR;
+    if (DecodedDataSize != pktsize_extra || DecodedSampleCount != _nsamples) return OPUS_INVALID_PACKET;
+
+    return 0;
+}
+#endif
+
 void CStream::Initialise()
 {
 #ifndef AUDIO_OPUS
 	mpg123_init();
+#elif defined(__SWITCH__)
+	InitializeSwitchOpusHwDecoder();
 #endif
 }
 
@@ -378,6 +450,8 @@ void CStream::Terminate()
 {
 #ifndef AUDIO_OPUS
 	mpg123_exit();
+#elif defined(__SWITCH__)
+	TerminateSwitchOpusHwDecoder();
 #endif
 }
 
