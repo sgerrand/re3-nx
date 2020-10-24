@@ -314,7 +314,7 @@ public:
 			}
 
 #ifdef __SWITCH__
-			int res = hwopusDecoderInitialize(&m_HwDecoder, m_nRate, 2);//This assumes that the opus file is <samplerate> with <num_channels>.
+			int res = hwopusDecoderInitialize(&m_HwDecoder, DIGITALRATE, m_nChannels);
 			if (R_FAILED(res)) {
 				printf("hwopusDecoderInitialize: %08" PRIx32 "\n", res);
 				assert("hwopusDecoderInitialize failed" && 0);
