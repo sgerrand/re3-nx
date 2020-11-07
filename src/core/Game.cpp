@@ -317,6 +317,9 @@ CGame::FinalShutdown(void)
 
 bool CGame::Initialise(const char* datFile)
 {
+#ifdef __SWITCH__
+	appletSetCpuBoostMode(ApmCpuBoostMode_Type1);
+#endif
 	ResetLoadingScreenBar();
 	strcpy(aDatFile, datFile);
 	CPools::Initialise();
@@ -461,6 +464,10 @@ bool CGame::Initialise(const char* datFile)
 	CCollision::ms_collisionInMemory = currLevel;
 	for (int i = 0; i < MAX_PADS; i++)
 		CPad::GetPad(i)->Clear(true);
+	
+#ifdef __SWITCH__
+	appletSetCpuBoostMode(ApmCpuBoostMode_Disabled);
+#endif
 	return true;
 }
 

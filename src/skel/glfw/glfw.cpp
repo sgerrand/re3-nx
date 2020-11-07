@@ -1515,6 +1515,7 @@ main(int argc, char *argv[])
 	#endif
 	appletLockExit();
 	appletHook(&s_re3AppletHookCookie, _re3SwitchAppletHook, NULL);
+	appletSetCpuBoostMode(ApmCpuBoostMode_Type1);
 #endif
 	RwV2d pos;
 	RwInt32 i;
@@ -1834,6 +1835,10 @@ main(int argc, char *argv[])
 							FrontEndMenuManager.m_nPrefsVideoMode = GcurSelVM;
 							FrontEndMenuManager.m_nDisplayVideoMode = GcurSelVM;
 						}
+
+#ifdef __SWITCH__
+						appletSetCpuBoostMode(ApmCpuBoostMode_Disabled);
+#endif
 						
 						gGameState = GS_FRONTEND;
 						TRACE("gGameState = GS_FRONTEND;");
