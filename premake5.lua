@@ -20,6 +20,11 @@ newoption {
 }
 
 newoption {
+	trigger     = "with-asan",
+	description = "Build with address sanitizer"
+}
+
+newoption {
 	trigger     = "with-librw",
 	description = "Build and use librw from this solution"
 }
@@ -59,6 +64,11 @@ workspace "re3"
 	location "build"
 	symbols "Full"
 	staticruntime "off"
+
+	if _OPTIONS["with-asan"] then
+		buildoptions { "-fsanitize=address -g3 -fno-omit-frame-pointer" }
+		linkoptions { "-fsanitize=address" }
+	end
 
 	filter { "system:windows" }
 		platforms {
@@ -112,9 +122,11 @@ workspace "re3"
 	
 	filter { "platforms:*x86*" }
 		architecture "x86"
+		floatingpoint "Fast"
 		
 	filter { "platforms:*amd64*" }
 		architecture "amd64"
+		floatingpoint "Fast"
 
 	filter { "platforms:*arm*" }
 		architecture "ARM"
@@ -174,6 +186,18 @@ project "librw"
 	files { path.join(Librw, "src/*.*") }
 	files { path.join(Librw, "src/*/*.*") }
 	
+	filter { "platforms:*x86*" }
+		architecture "x86"
+		floatingpoint "Fast"
+
+	filter { "platforms:*amd64*" }
+		architecture "amd64"
+		floatingpoint "Fast"
+
+	filter "platforms:win*"
+		staticruntime "on"
+		buildoptions { "/Zc:sizedDealloc-" }
+
 	filter "platforms:bsd*"
 		includedirs { "/usr/local/include" }
 		libdirs { "/usr/local/lib" }
@@ -184,6 +208,9 @@ project "librw"
 		includedirs {"/usr/local/include" }
 		libdirs { "/opt/local/lib" }
 		libdirs { "/usr/local/lib" }
+
+	filter "platforms:*gl3_glfw*"
+		staticruntime "off"
 	
 	filter "platforms:*RW33*"
 		flags { "ExcludeFromBuild" }
@@ -274,9 +301,14 @@ project "re3"
 	filter "platforms:win*"
 		files { addSrcFiles("src/skel/win") }
 		includedirs { "src/skel/win" }
+		buildoptions { "/Zc:sizedDealloc-" }
 		linkoptions "/SAFESEH:NO"
 		characterset ("MBCS")
 		targetextension ".exe"
+		staticruntime "on"
+
+	filter "platforms:win*glfw*"
+		staticruntime "off"
 		
 	filter "platforms:win*oal"
 		includedirs { "vendor/openal-soft/include" }
@@ -312,7 +344,6 @@ project "re3"
 	end
 
 	filter "platforms:*RW33*"
-		staticruntime "on"
 		includedirs { "sdk/rwsdk/include/d3d8" }
 		libdirs { "sdk/rwsdk/lib/d3d8/release" }
 		links { "rwcore", "rpworld", "rpmatfx", "rpskin", "rphanim", "rtbmp", "rtquat", "rtcharse" }

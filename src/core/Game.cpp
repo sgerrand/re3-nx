@@ -86,9 +86,9 @@
 #include "ZoneCull.h"
 #include "Zones.h"
 #include "debugmenu.h"
-#include "frontendoption.h"
 #include "postfx.h"
 #include "custompipes.h"
+#include "crossplatform.h"
 
 eLevelName CGame::currLevel;
 bool CGame::bDemoMode = true;
@@ -128,10 +128,10 @@ void MessageScreen(char *msg)
 	
 	CFont::SetFontStyle(FONT_BANK);
 	CFont::SetBackgroundOff();
-	CFont::SetWrapx(SCREEN_SCALE_FROM_RIGHT(190.0f)); // 450.0f
+	CFont::SetWrapx(SCREEN_SCALE_FROM_RIGHT(190.0f)); // 450.0f // unused
 	CFont::SetScale(SCREEN_SCALE_X(1.0f), SCREEN_SCALE_Y(1.0f));
 	CFont::SetCentreOn();
-	CFont::SetCentreSize(SCREEN_SCALE_FROM_RIGHT(190.0f)); // 450.0f
+	CFont::SetCentreSize(SCREEN_SCALE_X(450.0f)); // 450.0f
 	CFont::SetJustifyOff();
 	CFont::SetColor(CRGBA(255, 255, 255, 255));
 	CFont::SetDropColor(CRGBA(32, 32, 32, 255));
@@ -277,12 +277,31 @@ bool CGame::InitialiseOnceAfterRW(void)
 	if ( DMAudio.GetNum3DProvidersAvailable() == 0 )
 		FrontEndMenuManager.m_nPrefsAudio3DProviderIndex = -1;
 
-	if ( FrontEndMenuManager.m_nPrefsAudio3DProviderIndex == -99 || FrontEndMenuManager.m_nPrefsAudio3DProviderIndex == -2 )
-	{
+	if ( FrontEndMenuManager.m_nPrefsAudio3DProviderIndex == -99 || FrontEndMenuManager.m_nPrefsAudio3DProviderIndex == -2 ) {
 		CMenuManager::m_PrefsSpeakers = 0;
-		int8 provider = DMAudio.AutoDetect3DProviders();
-		if ( provider != -1 )
-			FrontEndMenuManager.m_nPrefsAudio3DProviderIndex = provider;
+		int32 i;
+		for (i = 0; i < DMAudio.GetNum3DProvidersAvailable(); i++) {
+			wchar buff[64];
+
+#ifdef AUDIO_OAL
+			extern int defaultProvider;
+			if (defaultProvider >= 0 && defaultProvider < DMAudio.GetNum3DProvidersAvailable()) 
+				break;
+#endif
+			char *name = DMAudio.Get3DProviderName(i);
+			AsciiToUnicode(name, buff);
+			char *providername = UnicodeToAscii(buff);
+			strupr(providername);
+#if defined(AUDIO_MSS)
+			if (strcmp(providername, "MILES FAST 2D POSITIONAL AUDIO") == 0)
+				break;
+#elif defined(AUDIO_OAL)
+			if (strcmp(providername, "OPENAL SOFT") == 0)
+				break;
+#endif
+		}
+
+		FrontEndMenuManager.m_nPrefsAudio3DProviderIndex = i;
 	}
 
 	DMAudio.SetCurrent3DProvider(FrontEndMenuManager.m_nPrefsAudio3DProviderIndex);
@@ -294,16 +313,6 @@ bool CGame::InitialiseOnceAfterRW(void)
 	DMAudio.SetMusicFadeVol(127);
 	CWorld::Players[0].SetPlayerSkin(CMenuManager::m_PrefsSkinFile);
 
-#ifdef CUSTOM_FRONTEND_OPTIONS
-	// Apparently this func. can be run multiple times at the start.
-	if (numCustomFrontendOptions == 0 && numCustomFrontendScreens == 0) {
-		// needs stored language and TheText to be loaded, and last TheText reload is at the start of here
-		CustomFrontendOptionsPopulate();
-	}
-#endif
-#ifdef LOAD_INI_SETTINGS
-	LoadINISettings(); // needs frontend options to be loaded
-#endif
 	return true;
 }
 
@@ -732,10 +741,10 @@ void CGame::InitialiseWhenRestarting(void)
 				
 				//CFont::SetFontStyle(?);
 				CFont::SetBackgroundOff();
-				CFont::SetWrapx(SCREEN_SCALE_FROM_RIGHT(160.0f)); // 480.0f
+				CFont::SetWrapx(SCREEN_SCALE_FROM_RIGHT(160.0f)); // 480.0f // unused
 				CFont::SetScale(SCREEN_SCALE_X(1.0f), SCREEN_SCALE_Y(1.0f));
 				CFont::SetCentreOn();
-				CFont::SetCentreSize(SCREEN_SCALE_FROM_RIGHT(160.0f)); // 480.0f
+				CFont::SetCentreSize(SCREEN_SCALE_X(480.0f)); // 480.0f
 				CFont::SetJustifyOff();
 				CFont::SetColor(CRGBA(255, 255, 255, 255));
 				CFont::SetBackGroundOnlyTextOff();
