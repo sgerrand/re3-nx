@@ -51,10 +51,17 @@ int MapIdToButtonId(int mapId) {
 			return 2;
 		case GLFW_GAMEPAD_BUTTON_B: // Circle
 			return 1;
+		#ifdef __SWITCH__
+		case GLFW_GAMEPAD_BUTTON_X: // Square
+			return 4;
+		case GLFW_GAMEPAD_BUTTON_Y: // Triangle
+			return 3;
+		#else
 		case GLFW_GAMEPAD_BUTTON_X: // Square
 			return 3;
 		case GLFW_GAMEPAD_BUTTON_Y: // Triangle
 			return 4;
+		#endif
 		case GLFW_GAMEPAD_BUTTON_LEFT_BUMPER:
 			return 7;
 		case GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER:
