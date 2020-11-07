@@ -53,12 +53,12 @@ INCLUDES	:= src src/animation src/audio src/audio/oal src/audio/eax src/control 
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-ARCH	:=	-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
+ARCH	:=	-march=armv8-a -mtune=cortex-a57 -mtp=soft -fPIE -mcpu=cortex-a57+crc+fp+simd
 
 CFLAGS	:=	-g -O3 -ffunction-sections \
 			$(ARCH) $(DEFINES)
 
-CFLAGS	+=	$(INCLUDE) -DSWITCH -D__SWITCH__ -DMASTER -DFINAL -DLIBRW -DRW_GL3 -DAUDIO_OAL -DLIBRW_GLAD -pthread
+CFLAGS	+=	$(INCLUDE) -DSWITCH -D__SWITCH__ -DMASTER -DLIBRW -DRW_GL3 -DAUDIO_OAL -DLIBRW_GLAD -pthread
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 
