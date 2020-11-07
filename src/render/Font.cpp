@@ -289,7 +289,11 @@ CFont::Initialise(void)
 
 #ifdef BUTTON_ICONS
 	slot = CTxdStore::AddTxdSlot("buttons");
+	#ifdef __SWITCH__
+	CTxdStore::LoadTxd(slot, "MODELS/NXBTNS.TXD");
+	#else
 	CTxdStore::LoadTxd(slot, "MODELS/X360BTNS.TXD");
+	#endif
 	CTxdStore::AddRef(slot);
 	CTxdStore::PushCurrentTxd();
 	CTxdStore::SetCurrentTxd(slot);
