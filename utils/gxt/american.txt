@@ -8061,6 +8061,12 @@ PS2
 [FEM_XBX]
 XBOX
 
+[FEC_IVP]
+INVERT PAD VERTICALLY
+
+[FEM_TWP]
+Toggle Waypoint
+
 { end of file }
 
 [DUMMY]

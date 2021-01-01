@@ -3,7 +3,14 @@
 
 #ifdef AUDIO_OAL
 
-#ifndef __SWITCH__ // oal switch port doesn't need this apparently
+/*
+ * When linking to a static openal-soft library,
+ * the extension function inside the openal library conflict with the variables here.
+ * Therefore declare these re3 owned symbols in a private namespace.
+ */
+
+namespace re3_openal {
+
 LPALGENEFFECTS alGenEffects;
 LPALDELETEEFFECTS alDeleteEffects;
 LPALISEFFECT alIsEffect;
@@ -38,6 +45,9 @@ LPALGETFILTERIV alGetFilteriv;
 LPALGETFILTERF alGetFilterf;
 LPALGETFILTERFV alGetFilterfv;
 
+}
+
+using namespace re3_openal;
 
 void EFXInit()
 {
@@ -170,5 +180,3 @@ void EAX3_SetReverbMix(ALuint filter, float mix)
 	alFilterf(filter, AL_LOWPASS_GAIN,   mB_to_gain(Min(mb, 0.0f)));
 	alFilterf(filter, AL_LOWPASS_GAINHF, mB_to_gain(mbhf));
 }
-
-#endif

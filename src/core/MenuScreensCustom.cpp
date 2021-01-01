@@ -15,6 +15,7 @@
 #include "FileLoader.h"
 #include "Collision.h"
 #include "ModelInfo.h"
+#include "Pad.h"
 
 // Menu screens array is at the bottom of the file.
 
@@ -66,18 +67,13 @@
 	#define POSTFX_SELECTORS
 #endif	
 
-#ifdef EXTENDED_PIPELINES
-	#define PIPELINES_SELECTOR \
-		MENUACTION_CFO_SELECT, "FED_VPL", { new CCFOSelect((int8*)&CustomPipes::VehiclePipeSwitch, "VehiclePipeline", vehPipelineNames, ARRAY_SIZE(vehPipelineNames), false, nil) }, \
-		MENUACTION_CFO_SELECT, "FED_PRM", { new CCFOSelect((int8*)&CustomPipes::RimlightEnable, "NeoRimLight", off_on, 2, false, nil) }, \
-		MENUACTION_CFO_SELECT, "FED_WLM", { new CCFOSelect((int8*)&CustomPipes::LightmapEnable, "NeoLightMaps", off_on, 2, false, nil) }, \
-		MENUACTION_CFO_SELECT, "FED_RGL", { new CCFOSelect((int8*)&CustomPipes::GlossEnable, "NeoRoadGloss", off_on, 2, false, nil) },
+#ifdef INVERT_LOOK_FOR_PAD
+	#define INVERT_PAD_SELECTOR MENUACTION_CFO_SELECT, "FEC_IVP", { new CCFOSelect((int8*)&CPad::bInvertLook4Pad, "InvertPad", off_on, 2, false, nil) },
 #else
-	#define PIPELINES_SELECTOR
+	#define INVERT_PAD_SELECTOR
 #endif
 
 const char *filterNames[] = { "FEM_NON", "FEM_SIM", "FEM_NRM", "FEM_MOB" };
-const char *vehPipelineNames[] = { "FED_MFX", "FED_NEO" };
 const char *off_on[] = { "FEM_OFF", "FEM_ON" };
 
 void RestoreDefGraphics(int8 action) {
@@ -108,7 +104,7 @@ void RestoreDefGraphics(int8 action) {
 		CMenuManager::m_PrefsVsync = true;
 		CMenuManager::m_PrefsUseWideScreen = false;
 		FrontEndMenuManager.m_nDisplayVideoMode = FrontEndMenuManager.m_nPrefsVideoMode;
-		#ifdef GTA3_1_1_PATCH
+		#if GTA_VERSION >= GTA3_PC_11
 			if (_dwOperatingSystemVersion == OS_WIN98) {
 				CMBlur::BlurOn = false;
 				CMBlur::MotionBlurClose();
@@ -392,7 +388,12 @@ CMenuScreenCustom aScreens[MENUPAGES] = {
 		MENUACTION_SCREENRES,	"FED_RES", { nil, SAVESLOT_NONE, MENUPAGE_DISPLAY_SETTINGS },
 		VIDEOMODE_SELECTOR
 		MULTISAMPLING_SELECTOR
-		MENUACTION_CHANGEMENU,	"FET_ADV", { nil, SAVESLOT_NONE, MENUPAGE_ADVANCED_DISPLAY_SETTINGS },
+		ISLAND_LOADING_SELECTOR
+		DUALPASS_SELECTOR
+		CUTSCENE_BORDERS_TOGGLE
+		FREE_CAM_TOGGLE
+		POSTFX_SELECTORS
+		// re3.cpp inserts here pipeline selectors if neo/neo.txd exists and EXTENDED_PIPELINES defined
 		MENUACTION_RESTOREDEF,	"FET_DEF", { nil, SAVESLOT_NONE, MENUPAGE_DISPLAY_SETTINGS },
 		MENUACTION_CHANGEMENU,	"FEDS_TB", { nil, SAVESLOT_NONE, MENUPAGE_NONE },
 	},
@@ -623,7 +624,9 @@ CMenuScreenCustom aScreens[MENUPAGES] = {
 
 	// MENUPAGE_CONTROLLER_PC = 35
 	{ "FET_CTL", MENUPAGE_OPTIONS, MENUPAGE_OPTIONS, nil, nil,
+#ifdef PC_PLAYER_CONTROLS
 		MENUACTION_CTRLMETHOD,	"FET_CME", { nil, SAVESLOT_NONE, MENUPAGE_CONTROLLER_PC },
+#endif
 		MENUACTION_KEYBOARDCTRLS,"FET_RDK", { nil, SAVESLOT_NONE, MENUPAGE_KEYBOARD_CONTROLS },
 #ifdef DONT_TRUST_RECOGNIZED_JOYSTICKS
 		MENUACTION_CHANGEMENU,	"FEC_JOD", { nil, SAVESLOT_NONE, MENUPAGE_DETECT_JOYSTICK },
@@ -780,6 +783,7 @@ CMenuScreenCustom aScreens[MENUPAGES] = {
    { "FET_MTI", MENUPAGE_CONTROLLER_PC, MENUPAGE_CONTROLLER_PC, nil, nil,
 	   MENUACTION_MOUSESENS,	"FEC_MSH",	{ nil, SAVESLOT_NONE, MENUPAGE_MOUSE_CONTROLS },
 	   MENUACTION_INVVERT,		"FEC_IVV",	{ nil, SAVESLOT_NONE, MENUPAGE_MOUSE_CONTROLS },
+       INVERT_PAD_SELECTOR
 	   MENUACTION_MOUSESTEER,	"FET_MST",	{ nil, SAVESLOT_NONE, MENUPAGE_MOUSE_CONTROLS },
 	   MENUACTION_CHANGEMENU,	"FEDS_TB",	{ nil, SAVESLOT_NONE, MENUPAGE_NONE },
    },
@@ -816,34 +820,15 @@ CMenuScreenCustom aScreens[MENUPAGES] = {
 		MENUACTION_FRAMESYNC,	"FEM_VSC", { nil, SAVESLOT_NONE, MENUPAGE_DISPLAY_SETTINGS },
 		MENUACTION_FRAMELIMIT,	"FEM_FRM", { nil, SAVESLOT_NONE, MENUPAGE_DISPLAY_SETTINGS },
 		MULTISAMPLING_SELECTOR
+		ISLAND_LOADING_SELECTOR
+		DUALPASS_SELECTOR
 #ifdef EXTENDED_COLOURFILTER
 		POSTFX_SELECTORS
 #else
 		MENUACTION_TRAILS,		"FED_TRA", { nil, SAVESLOT_NONE, MENUPAGE_DISPLAY_SETTINGS },
 #endif
-#ifdef EXTENDED_PIPELINES
-		PIPELINES_SELECTOR
-#endif
-		ISLAND_LOADING_SELECTOR
-		DUALPASS_SELECTOR
+		// re3.cpp inserts here pipeline selectors if neo/neo.txd exists and EXTENDED_PIPELINES defined
 		MENUACTION_CFO_DYNAMIC,	"FET_DEF", { new CCFODynamic(nil, nil, nil, RestoreDefGraphics) },
-		MENUACTION_CHANGEMENU,	"FEDS_TB", { nil, SAVESLOT_NONE, MENUPAGE_NONE },
-	},
-#else
-	// MENUPAGE_ADVANCED_DISPLAY_SETTINGS
-	{ "FET_ADV", MENUPAGE_OPTIONS, MENUPAGE_OPTIONS,
-		new CCustomScreenLayout({MENUSPRITE_MAINMENU, 50, 0, 20, FONT_HEADING, FESCREEN_LEFT_ALIGN, true, MEDIUMTEXT_X_SCALE, MEDIUMTEXT_Y_SCALE}), nil,
-
-		ISLAND_LOADING_SELECTOR
-		DUALPASS_SELECTOR
-		CUTSCENE_BORDERS_TOGGLE
-		FREE_CAM_TOGGLE
-#ifdef EXTENDED_COLOURFILTER
-		POSTFX_SELECTORS
-#endif
-#ifdef EXTENDED_PIPELINES
-		PIPELINES_SELECTOR
-#endif
 		MENUACTION_CHANGEMENU,	"FEDS_TB", { nil, SAVESLOT_NONE, MENUPAGE_NONE },
 	},
 #endif

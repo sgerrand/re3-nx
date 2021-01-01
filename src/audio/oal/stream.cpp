@@ -10,7 +10,6 @@
 #ifdef _WIN32
 #pragma comment( lib, "libsndfile-1.lib" )
 #pragma comment( lib, "libmpg123-0.lib" )
-#else
 #endif
 #ifndef __SWITCH__
 #include <sndfile.h>
@@ -27,6 +26,10 @@ static size_t opuspkt_tmpbuf_size = sizeof(HwopusHeader) + 4096*48;
 static uint8* opuspkt_tmpbuf = nil;
 
 int hw_decode(void *_ctx, OpusMSDecoder *_decoder, void *_pcm, const ogg_packet *_op, int _nsamples, int _nchannels, int _format, int _li);
+#endif
+
+#ifndef _WIN32
+#include "crossplatform.h"
 #endif
 
 #ifndef AUDIO_OPUS
