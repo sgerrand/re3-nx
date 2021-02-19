@@ -6,6 +6,9 @@
 #include "Timecycle.h"
 #include "skeleton.h"
 #include "Debug.h"
+#if defined(FIX_BUGS) || defined(LIBRW)
+#include "MBlur.h"
+#endif
 #if !defined(FINAL) || defined(DEBUGMENU)
 #include "rtcharse.h"
 #endif
@@ -486,6 +489,8 @@ CameraSize(RwCamera * camera, RwRect * rect,
 				RwCameraSetRaster(camera, raster);
 				RwCameraSetZRaster(camera, zRaster);
 			}
+
+			CMBlur::MotionBlurOpen(camera);
 #else
 			raster = RwCameraGetRaster(camera);
 			zRaster = RwCameraGetZRaster(camera);
